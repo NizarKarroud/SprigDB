@@ -5,9 +5,20 @@
 #include <logger.h>
 #include <stdlib.h>
 
+
 #define INSERT_OK 0
-#define INSERT_ERR_KEY_DUPLICATE 4
-#define INSERT_ERR_ALLOC_FAILED 5
+#define INSERT_ERR_KEY_DUPLICATE 1
+#define INSERT_ERR_ALLOC_FAILED 2
+
+#define DELETE_OK 3
+#define DELETE_ERR_KEY_NOT_FOUND 4
+
+#define UPDATE_OK 5
+
+
+#define RESIZE_OK 6
+#define RESIZE_ERR_MEM_ALL 7
+
 
 typedef enum
 {
@@ -71,7 +82,7 @@ char *hash_password(char *password)
     if (result == ARGON2_OK)
     {
         logger("INFO", "Admin password hash generated!\n");
-        return strdup(encoded); // strdup so it survives after function returns
+        return strdup(encoded);
     }
     else
     {
@@ -135,6 +146,110 @@ kv_node *kv_node_search(kv_hash_table *store, char *key)
         current_node = current_node->next;
     }
 
-    logger("INFO", "No value found for the given key");
+    logger("ERROR", "No value found for the given key");
     return NULL;
+}
+
+
+int delete_pair(char *key , kv_hash_table *store){
+
+    size_t hashed_key = hash_key(key, store->size);
+    kv_node *current_node = store->buckets[hashed_key];
+    kv_node *last_node = NULL;
+
+    while (current_node != NULL)
+    {
+        if (strcmp(current_node->key, key) == 0)
+        {
+            if (last_node)
+                last_node->next = current_node->next;
+            else
+                store->buckets[hashed_key] = current_node->next;
+
+            free_kv_node(current_node);
+            logger("INFO", "Pair Deleted");
+            return DELETE_OK;
+        }
+        last_node = current_node;
+        current_node = current_node->next;
+    }
+
+    logger("ERROR" , "Delete operation failed , key not found");
+    return DELETE_ERR_KEY_NOT_FOUND;
+
+}
+
+void free_kv_node(kv_node *node){
+
+    free(node->key);
+    if (node->value.type == TYPE_STR && node->value.data.str_val != NULL){
+        free(node->value.data.str_val);
+    }
+    free(node);
+}
+
+int update_value(kv_hash_table *store , char *key , Value new_value){
+
+    kv_node *node = kv_node_search(store , key);
+
+    if (node->value.type == TYPE_STR && node->value.data.str_val != NULL) {
+        free(node->value.data.str_val);
+    }
+    node->value = new_value;
+    return UPDATE_OK;   
+
+}
+
+
+kv_hash_table *init_kv_hash_table(size_t size){
+
+    kv_hash_table *store = malloc(sizeof(kv_hash_table));
+    if (!store) {
+        logger("ERROR", "Failed to allocate memory for KV hash table");
+        return NULL;
+    }
+
+    store->buckets = calloc(size, sizeof(kv_node*));
+    if (!store->buckets) {
+        free(store);
+        logger("ERROR", "Failed to allocate memory for buckets array");
+        return NULL;
+    }
+
+    store->size = size;
+    logger("INFO", "KV HASH TABLE INITIATED SUCCESSFULLY");
+    return store;
+}
+
+int resize_buckets_array(size_t new_size , kv_hash_table *store){
+
+    kv_node **new_buckets_array = realloc(store->buckets , new_size * sizeof(kv_node*));
+    if (!new_buckets_array){
+        return RESIZE_ERR_MEM_ALL;
+    }
+
+
+    if (new_size > store->size)
+        for (size_t i = store->size; i < new_size; i++)
+            new_buckets_array[i] = NULL;
+
+    store->buckets = new_buckets_array;
+    store->size = new_size;
+
+    return RESIZE_OK;
+}
+
+void free_kv_hash_table(kv_hash_table *store) {
+
+    for (size_t i = 0; i < store->size; i++) {
+
+        kv_node *node = store->buckets[i];
+        while (node) {
+            kv_node *tmp = node;
+            node = node->next;
+            free_kv_node(tmp);
+        }
+    }
+    free(store->buckets);
+    free(store);
 }
