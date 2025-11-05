@@ -10,7 +10,7 @@
 
 ## About
 
-SprigDB is an experimental, Redis-inspired in-memory database focused on simple dictionary (key-value) data structures. It's an educational and exploratory project intended to demonstrate core concepts of an in-memory store: fast lookups, simple persistence strategies (planned), and small, embeddable design.
+SprigDB is an experimental in-memory database focused on key-value storage. It supports persistence via Write-Ahead Logs (WAL) and snapshotting, allowing data recovery in the event of crashes.
 
 This repository is in very early development and not ready for production or testing. No build or run steps are included in this README yet.
 
@@ -21,7 +21,7 @@ This repository is in very early development and not ready for production or tes
 
 ## Contributing
 
-This project is in its infancy. Contributions that improve clarity, add tests, or implement core data structures are welcome. Opening issues for proposed features or design discussions is encouraged.
+This project is in its infancy. Contributions are welcome. Opening issues for proposed features or design discussions is encouraged.
 
 ## License
 

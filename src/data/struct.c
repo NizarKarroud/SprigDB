@@ -9,15 +9,15 @@
 #define INSERT_OK 0
 #define INSERT_ERR_KEY_DUPLICATE 1
 #define INSERT_ERR_ALLOC_FAILED 2
+#define INSERT_ERR_KEY_EMPTY 3
+#define DELETE_OK 4
+#define DELETE_ERR_KEY_NOT_FOUND 5
 
-#define DELETE_OK 3
-#define DELETE_ERR_KEY_NOT_FOUND 4
-
-#define UPDATE_OK 5
+#define UPDATE_OK 6
 
 
-#define RESIZE_OK 6
-#define RESIZE_ERR_MEM_ALL 7
+#define RESIZE_OK 7
+#define RESIZE_ERR_MEM_ALL 8
 
 
 typedef enum
@@ -94,6 +94,11 @@ char *hash_password(char *password)
 // ---------------- KV functions ----------------
 int insert_pair(char *key, Value value, kv_hash_table *store)
 {
+    if (key == NULL || key[0] == '\0'){
+        logger("ERROR" , "empty key not allowed in hash table\n");
+        return INSERT_ERR_KEY_EMPTY;
+    }
+
     size_t hashed_key = hash_key(key, store->size);
     kv_node *current_node = store->buckets[hashed_key];
     kv_node *last_node = NULL;
@@ -102,7 +107,7 @@ int insert_pair(char *key, Value value, kv_hash_table *store)
     {
         if (strcmp(current_node->key, key) == 0)
         {
-            logger("ERROR", "Pair insertion failed, duplicate key found");
+            logger("ERROR", "Pair insertion failed, duplicate key found\n");
             return INSERT_ERR_KEY_DUPLICATE;
         }
         last_node = current_node;
@@ -112,7 +117,7 @@ int insert_pair(char *key, Value value, kv_hash_table *store)
     kv_node *node = malloc(sizeof(kv_node));
     if (!node)
     {
-        logger("ERROR", "Pair insertion failed: memory allocation failed");
+        logger("ERROR", "Pair insertion failed: memory allocation failed\n");
         return INSERT_ERR_ALLOC_FAILED;
     }
 
@@ -140,17 +145,24 @@ kv_node *kv_node_search(kv_hash_table *store, char *key)
     {
         if (strcmp(current_node->key, key) == 0)
         {
-            logger("INFO", "Found value for the given key");
+            logger("INFO", "Found value for the given key\n");
             return current_node;
         }
         current_node = current_node->next;
     }
 
-    logger("ERROR", "No value found for the given key");
+    logger("ERROR", "No value found for the given key\n");
     return NULL;
 }
 
+void free_kv_node(kv_node *node){
 
+    free(node->key);
+    if (node->value.type == TYPE_STR && node->value.data.str_val != NULL){
+        free(node->value.data.str_val);
+    }
+    free(node);
+}
 int delete_pair(char *key , kv_hash_table *store){
 
     size_t hashed_key = hash_key(key, store->size);
@@ -167,26 +179,19 @@ int delete_pair(char *key , kv_hash_table *store){
                 store->buckets[hashed_key] = current_node->next;
 
             free_kv_node(current_node);
-            logger("INFO", "Pair Deleted");
+            logger("INFO", "Pair Deleted\n");
             return DELETE_OK;
         }
         last_node = current_node;
         current_node = current_node->next;
     }
 
-    logger("ERROR" , "Delete operation failed , key not found");
+    logger("ERROR" , "Delete operation failed , key not found\n");
     return DELETE_ERR_KEY_NOT_FOUND;
 
 }
 
-void free_kv_node(kv_node *node){
 
-    free(node->key);
-    if (node->value.type == TYPE_STR && node->value.data.str_val != NULL){
-        free(node->value.data.str_val);
-    }
-    free(node);
-}
 
 int update_value(kv_hash_table *store , char *key , Value new_value){
 
@@ -205,19 +210,19 @@ kv_hash_table *init_kv_hash_table(size_t size){
 
     kv_hash_table *store = malloc(sizeof(kv_hash_table));
     if (!store) {
-        logger("ERROR", "Failed to allocate memory for KV hash table");
+        logger("ERROR", "Failed to allocate memory for KV hash table\n");
         return NULL;
     }
 
     store->buckets = calloc(size, sizeof(kv_node*));
     if (!store->buckets) {
         free(store);
-        logger("ERROR", "Failed to allocate memory for buckets array");
+        logger("ERROR", "Failed to allocate memory for buckets array\n");
         return NULL;
     }
 
     store->size = size;
-    logger("INFO", "KV HASH TABLE INITIATED SUCCESSFULLY");
+    logger("INFO", "KV HASH TABLE INITIATED SUCCESSFULLY\n");
     return store;
 }
 
