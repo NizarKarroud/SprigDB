@@ -138,6 +138,7 @@ int insert_pair(char *key, Value value, kv_hash_table *store)
 
 kv_node *kv_node_search(kv_hash_table *store, char *key)
 {
+    
     size_t hashed_key = hash_key(key, store->size);
     kv_node *current_node = store->buckets[hashed_key];
 
@@ -163,6 +164,7 @@ void free_kv_node(kv_node *node){
     }
     free(node);
 }
+
 int delete_pair(char *key , kv_hash_table *store){
 
     size_t hashed_key = hash_key(key, store->size);
@@ -192,7 +194,6 @@ int delete_pair(char *key , kv_hash_table *store){
 }
 
 
-
 int update_value(kv_hash_table *store , char *key , Value new_value){
 
     kv_node *node = kv_node_search(store , key);
@@ -208,6 +209,11 @@ int update_value(kv_hash_table *store , char *key , Value new_value){
 
 kv_hash_table *init_kv_hash_table(size_t size){
 
+    if (size == 0){
+        logger("ERROR", "Failed to init hash table size is zero\n");
+
+        return NULL ;
+    }
     kv_hash_table *store = malloc(sizeof(kv_hash_table));
     if (!store) {
         logger("ERROR", "Failed to allocate memory for KV hash table\n");
@@ -226,23 +232,28 @@ kv_hash_table *init_kv_hash_table(size_t size){
     return store;
 }
 
-int resize_buckets_array(size_t new_size , kv_hash_table *store){
+int resize_buckets_array(size_t new_size, kv_hash_table *store) {
+    kv_node **new_buckets = calloc(new_size, sizeof(kv_node*));
+    if (!new_buckets) return RESIZE_ERR_MEM_ALL;
 
-    kv_node **new_buckets_array = realloc(store->buckets , new_size * sizeof(kv_node*));
-    if (!new_buckets_array){
-        return RESIZE_ERR_MEM_ALL;
+    for (size_t i = 0; i < store->size; i++) {
+        kv_node *node = store->buckets[i];
+        while (node) {
+            kv_node *next = node->next;
+            size_t new_index = hash_key(node->key, new_size);
+            node->next = new_buckets[new_index];
+            new_buckets[new_index] = node;
+            node = next;
+        }
     }
 
-
-    if (new_size > store->size)
-        for (size_t i = store->size; i < new_size; i++)
-            new_buckets_array[i] = NULL;
-
-    store->buckets = new_buckets_array;
+    free(store->buckets);
+    store->buckets = new_buckets;
     store->size = new_size;
 
     return RESIZE_OK;
 }
+
 
 void free_kv_hash_table(kv_hash_table *store) {
 

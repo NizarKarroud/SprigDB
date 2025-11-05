@@ -6,48 +6,7 @@
 #include <time.h>
 
 
-#define NUM_KEYS 100000
-#define KEY_LEN 10
-#define NUM_BUCKETS 1000
 
-static char **keys = NULL;
-static unsigned long *hashes = NULL;
-static unsigned long buckets[NUM_BUCKETS] = {0};
-
-
-void setup(void) {
-
-    srand((unsigned)time(NULL));
-
-    keys = malloc(NUM_KEYS * sizeof(char *));
-    hashes = malloc(NUM_KEYS * sizeof(unsigned long));
-
-    static const char charset[] =
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-    for (int i = 0; i < NUM_KEYS; i++) {
-        keys[i] = malloc(KEY_LEN);
-        for (int j = 0; j < KEY_LEN - 1; j++)
-            keys[i][j] = charset[rand() % (sizeof(charset) - 1)];
-        keys[i][KEY_LEN - 1] = '\0';
-
-        hashes[i] = djb2(keys[i]);
-        unsigned long bucket = hashes[i] % NUM_BUCKETS;
-        buckets[bucket]++;
-    }
-}
-
-void teardown(void) {
-    for (int i = 0; i < NUM_KEYS; i++)
-        free(keys[i]);
-    free(keys);
-    free(hashes);
-}
-
-
-
-
-TestSuite(db, .init = setup, .fini = teardown);
 
 // ---------------- Hash functions Tests ----------------
 
@@ -97,5 +56,5 @@ Test(hashing_key , performance_test){
     t = clock() - t; 
     double time_taken = ((double)t)/CLOCKS_PER_SEC; 
 
-    cr_log_info("Time taken to hash a 1 MB key : %f" , time_taken);
+    cr_log_info("Time taken to hash a 100 MB key : %f sec" , time_taken);
 }

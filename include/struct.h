@@ -7,14 +7,15 @@
 #define INSERT_OK 0
 #define INSERT_ERR_KEY_DUPLICATE 1
 #define INSERT_ERR_ALLOC_FAILED 2
+#define INSERT_ERR_KEY_EMPTY 3
+#define DELETE_OK 4
+#define DELETE_ERR_KEY_NOT_FOUND 5
 
-#define DELETE_OK 3
-#define DELETE_ERR_KEY_NOT_FOUND 4
+#define UPDATE_OK 6
 
-#define UPDATE_OK 5
 
-#define RESIZE_OK 6
-#define RESIZE_ERR_MEM_ALL 7
+#define RESIZE_OK 7
+#define RESIZE_ERR_MEM_ALL 8
 
 // ---------------- Value Types ----------------
 typedef enum
